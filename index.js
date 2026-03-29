@@ -1,9 +1,8 @@
 require("dotenv").config();
 const { S3Client, CreateBucketCommand } = require("@aws-sdk/client-s3");
 const { LambdaClient, CreateFunctionCommand } = require("@aws-sdk/client-lambda");
-const fs = require("fs");
+const { createLambdaDeploymentZip } = require("./utils");
 
-const LAMBDA_FUNCTION_NAME = "pyx-lambda-function";
 async function createLambdaFunction() {
     const lambdaClient = new LambdaClient({
         region: process.env.AWS_REGION,
@@ -13,15 +12,24 @@ async function createLambdaFunction() {
         },
     });
     const createLambdaFunctionCommand = new CreateFunctionCommand({
-        FunctionName: LAMBDA_FUNCTION_NAME,
+        FunctionName: process.env.PYX_LAMBDA_FUNCTION_NAME,
         Runtime: "nodejs18.x",
+        Handler: "index.handler",
         Role: process.env.AWS_LAMBDA_ROLE,
         Code: {
-            ZipFile: fs.readFileSync("index.js"),
+            ZipFile: await createLambdaDeploymentZip(),
         },
     });
-    const result = await lambdaClient.send(createLambdaFunctionCommand);
-    console.log(result);
+    try {
+        const result = await lambdaClient.send(createLambdaFunctionCommand);
+        console.log(result);
+    } catch (error) {
+        if (error.name === "ResourceConflictException") {
+            console.log("Lambda function already exists");
+        } else {
+            throw error;
+        }
+    }
 }
 async function main() {
     const s3Client = new S3Client({
