@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-lambda": "^3.1019.0",
     "@aws-sdk/client-s3": "^3.1019.0",
     "dotenv": "^17.3.1"
   }
