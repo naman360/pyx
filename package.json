@@ -5,13 +5,18 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "node index.js",
+    "create-bundle":"docker build -t pyx-lambda .",
+    "copy-bundle":"docker create --name temp pyx-lambda && docker cp temp:/var/task ./dist && docker rm temp"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-lambda": "^3.1019.0",
-    "@aws-sdk/client-s3": "^3.1019.0",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-lambda": "^3.1020.0",
+    "@aws-sdk/client-s3": "^3.1020.0",
     "archiver": "^7.0.1",
     "dotenv": "^17.3.1"
   }

@@ -1,0 +1,7 @@
+{
+  "name": "pyx-lambda-image",
+  "private": true,
+  "dependencies": {
+    "sharp": "^0.34.5"
+  }
+}
