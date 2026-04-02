@@ -4,6 +4,9 @@ const { LambdaClient, CreateFunctionCommand, UpdateFunctionCodeCommand } = requi
 const { CloudFrontClient, CreateDistributionCommand, ListDistributionsCommand } = require("@aws-sdk/client-cloudfront");
 const { createLambdaDeploymentZip } = require("./utils");
 
+const originalImageBucketName = process.env.PYX_ORIGINAL_IMAGE_BUCKET;
+const transformedImageBucketName = process.env.PYX_TRANSFORMED_IMAGE_BUCKET;
+
 const lambdaClient = new LambdaClient({
     region: process.env.AWS_REGION,
     credentials: {
@@ -47,7 +50,7 @@ async function createLambdaFunction() {
     }
 }
 
-const checkIfCloudFrontDistributionExists = async () => {
+const checkIfCloudFrontDistributionExists = async (comment) => {
     const listResult = await cloudFrontClient.send(new ListDistributionsCommand({}));
     const existingItems = listResult.DistributionList?.Items || [];
     const existingDistribution = existingItems.find((item) => {
@@ -55,26 +58,25 @@ const checkIfCloudFrontDistributionExists = async () => {
         const originIds = origins.map((origin) => origin.Id);
         return (
             item.Comment === comment &&
-            originIds.includes(originalBucket) &&
-            originIds.includes(transformedBucket)
+            originIds.includes(originalImageBucketName) &&
+            originIds.includes(transformedImageBucketName)
         );
     });
     return existingDistribution;
 }
 
 async function createCloudFrontDistribution() {
-   
+
     const region = process.env.AWS_REGION;
-    const originalBucket = process.env.PYX_ORIGINAL_IMAGE_BUCKET;
-    const transformedBucket = process.env.PYX_TRANSFORMED_IMAGE_BUCKET;
+
     const toS3OriginDomain = (bucket) =>
         region === "us-east-1"
             ? `${bucket}.s3.amazonaws.com`
             : `${bucket}.s3.${region}.amazonaws.com`;
     const comment = "Pyx CloudFront Distribution";
 
-    const existingDistribution = await checkIfCloudFrontDistributionExists();
-    
+    const existingDistribution = await checkIfCloudFrontDistributionExists(comment);
+
     if (existingDistribution) {
         console.log("CloudFront distribution already exists");
         return existingDistribution;
@@ -168,8 +170,7 @@ async function main() {
             secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
         },
     });
-    const originalImageBucketName = process.env.PYX_ORIGINAL_IMAGE_BUCKET;
-    const transformedImageBucketName = process.env.PYX_TRANSFORMED_IMAGE_BUCKET;
+
     const createOriginalImageBucketCommand = new CreateBucketCommand({
         Bucket: originalImageBucketName,
     });
@@ -179,7 +180,7 @@ async function main() {
 
     const result = await s3Client.send(createOriginalImageBucketCommand);
     const transformedImageBucketResult = await s3Client.send(createTransformedImageBucketCommand);
-    // await createLambdaFunction();
+    await createLambdaFunction();
     await createCloudFrontDistribution();
 }
 
