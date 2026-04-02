@@ -1,5 +1,5 @@
 # TODO
 
 - Introduce Lambda Layers for node_modules
-- Add Cloudfront Cache
+- Update Permissions for accessing S3 by CF
 
