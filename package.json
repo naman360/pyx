@@ -6,12 +6,15 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "create-bundle":"docker build -t pyx-lambda .",
-    "copy-bundle":"docker create --name temp pyx-lambda && docker cp temp:/var/task ./dist && docker rm temp"
+    "create-bundle": "docker build -t pyx-lambda .",
+    "copy-bundle": "docker create --name temp pyx-lambda && docker cp temp:/var/task ./dist && docker rm temp"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-cloudfront": "^3.1022.0",
+    "i": "^0.3.7",
+    "npm": "^11.12.1",
     "sharp": "^0.34.5"
   },
   "devDependencies": {
