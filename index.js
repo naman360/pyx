@@ -68,6 +68,7 @@ const checkIfCloudFrontDistributionExists = async (comment) => {
 async function createCloudFrontDistribution() {
 
     const region = process.env.AWS_REGION;
+    const apiUrl = new URL(process.env.AWS_LABMDA_API_ENDPOINT);
 
     const toS3OriginDomain = (bucket) =>
         region === "us-east-1"
@@ -103,8 +104,8 @@ async function createCloudFrontDistribution() {
                     Quantity: 0,
                 },
                 MinTTL: 0,
-                DefaultTTL: 86400,
-                MaxTTL: 31536000,
+                DefaultTTL: 24 * 60 * 60,
+                MaxTTL: 365 * 24 * 60 * 60,
             },
             // Unique identifier for the distribution.
             CallerReference: new Date().toISOString(),
@@ -113,15 +114,25 @@ async function createCloudFrontDistribution() {
             Enabled: true,
             Origins: {
                 Items: [{
-                    DomainName: toS3OriginDomain(originalBucket),
-                    Id: originalBucket,
-                    S3OriginConfig: {
-                        OriginAccessIdentity: "",
+                    // CloudFront origin domain must be a hostname (no scheme/path).
+                    DomainName: apiUrl.host,
+                    Id: "pyx-image-transformation-api",
+                    // If your API is deployed under a stage/path, set it here so CF forwards `/foo`
+                    // as `/<stage>/foo` to the origin.
+                    OriginPath: apiUrl.pathname.replace(/\/$/, ""),
+                    CustomOriginConfig: {
+                        HTTPPort: 80,
+                        HTTPSPort: 443,
+                        OriginProtocolPolicy: "https-only",
+                        OriginSslProtocols: {
+                            Items: ["TLSv1.2"],
+                            Quantity: 1,
+                        },
                     },
                 },
                 {
-                    DomainName: toS3OriginDomain(transformedBucket),
-                    Id: transformedBucket,
+                    DomainName: toS3OriginDomain(transformedImageBucketName),
+                    Id: transformedImageBucketName,
                     S3OriginConfig: {
                         OriginAccessIdentity: "",
                     },
@@ -136,10 +147,10 @@ async function createCloudFrontDistribution() {
                         Members: {
                             Items: [
                                 {
-                                    OriginId: transformedBucket,
+                                    OriginId: transformedImageBucketName,
                                 },
                                 {
-                                    OriginId: originalBucket,
+                                    OriginId: "pyx-image-transformation-api",
                                 },
                             ],
                             Quantity: 2,
