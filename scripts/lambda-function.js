@@ -10,11 +10,18 @@ async function loadImageBuffer(imageUrl) {
 
 function readQueryParams(event) {
     const qs = event.queryStringParameters || {};
+    const rawParams = new URLSearchParams(event.rawQueryString || "");
     return {
-        image: qs.image,
-        format: qs.format,
-        width: qs.width != null ? Number(qs.width) : undefined,
-        height: qs.height != null ? Number(qs.height) : undefined,
+        image: qs.image || rawParams.get("image") || undefined,
+        format: qs.format || rawParams.get("format") || undefined,
+        width:
+            qs.width != null || rawParams.get("width") != null
+                ? Number(qs.width ?? rawParams.get("width"))
+                : undefined,
+        height:
+            qs.height != null || rawParams.get("height") != null
+                ? Number(qs.height ?? rawParams.get("height"))
+                : undefined,
     };
 }
 
@@ -22,7 +29,11 @@ async function transformImage(event) {
     const { image, format, width, height } = readQueryParams(event);
     console.log({ image, format, width, height });
     if (!image) {
-        return { statusCode: 400, body: JSON.stringify({ error: "missing image query param" }) };
+        return {
+            statusCode: 400,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ error: "missing image query param", image, format, width, height }),
+        };
     }
     const input = await loadImageBuffer(image);
     let pipeline = sharp(input);
@@ -42,5 +53,17 @@ async function transformImage(event) {
 }
 
 exports.handler = async (event) => {
-    return await transformImage(event);
+    try {
+        return await transformImage(event);
+    } catch (error) {
+        console.error("transform failed", error);
+        return {
+            statusCode: 500,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                error: "transform failed",
+                message: error?.message || "unknown",
+            }),
+        };
+    }
 };
