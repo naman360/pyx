@@ -1,5 +1,6 @@
 # TODO
 
 - Introduce Lambda Layers for node_modules
-- Update Permissions for accessing S3 by CF
+- Introduce rewrite URL for CF for different arrangement of query params
+- Check why existing check for CF not working
 
